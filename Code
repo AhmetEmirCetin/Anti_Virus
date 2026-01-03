@@ -1,0 +1,87 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Security.Cryptography; // Şifreleme kütüphanesi (Hash için)
+using System.Text;
+
+namespace AntivirusProjesi
+{
+    class Program
+    {
+        // Zararlı olduğu bilinen dosyaların "Parmak İzleri" (MD5 Hashleri)
+        // Gerçek hayatta bu liste sunucudan güncellenir.
+        static List<string> virusImzaVeritabani = new List<string>()
+        {
+            "D41D8CD98F00B204E9800998ECF8427E", // Örnek: Boş dosyanın MD5'i
+            "5D41402ABC4B2A76B9719D911017C592", // 'hello' yazan dosyanın MD5'i (Test için)
+            // Buraya gerçek virüs hashleri de eklenebilir.
+        };
+
+        static void Main(string[] args)
+        {
+            Console.Title = "Geleceğin Mühendisi Antivirüs v1.0";
+            Console.WriteLine("==========================================");
+            Console.WriteLine("   BASİT ANTİVİRÜS (İMZA TABANLI TARAMA)  ");
+            Console.WriteLine("==========================================");
+
+            while (true)
+            {
+                Console.WriteLine("\nTaranacak dosyanın tam yolunu yapıştırın (Örn: C:\\test\\dosya.txt):");
+                Console.Write(">> ");
+                string dosyaYolu = Console.ReadLine().Trim('"'); // Tırnak işareti gelirse temizle
+
+                if (dosyaYolu.ToLower() == "exit") break;
+
+                if (File.Exists(dosyaYolu))
+                {
+                    Console.WriteLine("Dosya analiz ediliyor...");
+                    
+                    // 1. ADIM: Dosyanın Hash'ini hesapla
+                    string dosyaHash = MD5Hesapla(dosyaYolu);
+                    Console.WriteLine($"Dosya İmzası (MD5): {dosyaHash}");
+
+                    // 2. ADIM: Veritabanında var mı kontrol et
+                    if (virusImzaVeritabani.Contains(dosyaHash))
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("⚠️ UYARI: BU DOSYA ZARARLI YAZILIM OLARAK TESPİT EDİLDİ!");
+                        Console.WriteLine("Sileyim mi? (E/H)");
+                        
+                        // Ekstra: Virüsü temizleme
+                        if (Console.ReadLine().ToUpper() == "E")
+                        {
+                            File.Delete(dosyaYolu);
+                            Console.WriteLine("Dosya başarıyla imha edildi.");
+                        }
+                    }
+                    else
+                    {
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        Console.WriteLine("✅ TEMİZ: Dosya güvenli görünüyor.");
+                    }
+                }
+                else
+                {
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Console.WriteLine("Hata: Dosya bulunamadı! Yolu doğru yazdığına emin misin?");
+                }
+
+                Console.ResetColor();
+            }
+        }
+
+        // Bir dosyanın MD5 özetini çıkaran fonksiyon (Standart Kod)
+        static string MD5Hesapla(string dosyaYolu)
+        {
+            using (var md5 = MD5.Create())
+            {
+                using (var stream = File.OpenRead(dosyaYolu))
+                {
+                    var hashBytes = md5.ComputeHash(stream);
+                    // Byte dizisini okunabilir string'e çeviriyoruz
+                    return BitConverter.ToString(hashBytes).Replace("-", "").ToUpperInvariant();
+                }
+            }
+        }
+    }
+}
